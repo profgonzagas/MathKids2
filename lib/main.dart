@@ -1,36 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 void main() {
-  runApp(MathQuizApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => QuizState(),
+      child: MathQuizApp(),
+    ),
+  );
 }
 
 class MathQuizApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = context.watch<QuizState>().isDarkMode;
+
     return MaterialApp(
       title: 'Matemática para crianças',
-      theme: ThemeData(
-        colorScheme: ColorScheme.light(
-          primary: Colors.deepOrange,
-          secondary: Colors.amber,
-        ),
-        scaffoldBackgroundColor: Colors.lightBlueAccent.shade100,
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orangeAccent,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            padding: EdgeInsets.symmetric(vertical: 16),
-          ),
+      theme: isDarkMode ? _buildDarkTheme() : _buildLightTheme(),
+      home: HomePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+
+  ThemeData _buildLightTheme() {
+    return ThemeData(
+      colorScheme: ColorScheme.light(
+        primary: Colors.deepOrange,
+        secondary: Colors.amber,
+      ),
+      scaffoldBackgroundColor: Colors.lightBlueAccent.shade100,
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+        bodyMedium: TextStyle(color: Colors.white, fontSize: 18),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orangeAccent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          padding: EdgeInsets.symmetric(vertical: 16),
         ),
       ),
-      home: HomePage(),
     );
+  }
+
+  ThemeData _buildDarkTheme() {
+    return ThemeData(
+      colorScheme: ColorScheme.dark(
+        primary: Colors.deepOrange,
+        secondary: Colors.amber,
+      ),
+      scaffoldBackgroundColor: Colors.black87,
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+        bodyMedium: TextStyle(color: Colors.white70, fontSize: 18),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orangeAccent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          padding: EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+    );
+  }
+}
+
+class QuizState with ChangeNotifier {
+  bool _isDarkMode = false;
+
+  bool get isDarkMode => _isDarkMode;
+
+  void toggleDarkMode() async {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('darkMode', _isDarkMode);
   }
 }
 
@@ -42,6 +91,12 @@ class HomePage extends StatelessWidget {
         title: Text('Matemática para crianças', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.deepOrange,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(context.watch<QuizState>().isDarkMode ? Icons.dark_mode : Icons.light_mode),
+            onPressed: () => context.read<QuizState>().toggleDarkMode(),
+          ),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16),
@@ -50,16 +105,16 @@ class HomePage extends StatelessWidget {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
-            MathOptionButton('Addition', Icons.add, Colors.amber, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => QuizSettingsPage(operation: 'Addition')));
+            MathOptionButton('Adição', Icons.add, Colors.amber, () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => QuizSettingsPage(operation: 'Adição')));
             }),
-            MathOptionButton('Subtraction', Icons.remove, Colors.lightGreen, () {
+            MathOptionButton('Subtração', Icons.remove, Colors.lightGreen, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => QuizSettingsPage(operation: 'Subtraction')));
             }),
-            MathOptionButton('Multiplication', Icons.clear, Colors.lightBlue, () {
+            MathOptionButton('Multiplicação', Icons.clear, Colors.lightBlue, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => QuizSettingsPage(operation: 'Multiplication')));
             }),
-            MathOptionButton('Division', Icons.horizontal_rule, Colors.pinkAccent, () {
+            MathOptionButton('Divisão', Icons.horizontal_rule, Colors.pinkAccent, () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => QuizSettingsPage(operation: 'Division')));
             }),
           ],
@@ -119,7 +174,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.operation} Quiz Settings', style: TextStyle(fontSize: 24)),
+        title: Text('${widget.operation} Padrão respostas', style: TextStyle(fontSize: 24)),
         backgroundColor: Colors.deepOrange,
       ),
       body: Padding(
@@ -171,7 +226,7 @@ class _QuizSettingsPageState extends State<QuizSettingsPage> {
       List<int> options = [];
 
       switch (widget.operation) {
-        case 'Addition':
+        case 'Adição':
           correctAnswer = num1 + num2;
           questionText = '$num1 + $num2';
           break;
@@ -226,98 +281,59 @@ class _QuizPageState extends State<QuizPage> {
   int _correctAnswers = 0;
 
   void _answerQuestion(int selectedOption) {
-    final question = widget.questions[_currentQuestionIndex];
-    bool isCorrect = question['options'][selectedOption] == question['answer'];
-    if (isCorrect) {
+    final currentQuestion = widget.questions[_currentQuestionIndex];
+    if (selectedOption == currentQuestion['answer']) {
       _correctAnswers++;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-
-    if (_currentQuestionIndex < widget.questions.length - 1) {
+    if (_currentQuestionIndex + 1 < widget.questions.length) {
       setState(() {
         _currentQuestionIndex++;
       });
     } else {
-      Future.delayed(Duration(seconds: 1), _showResults);
-    }
-  }
-
-  void _showResults() {
-    double percentage = (_correctAnswers / widget.questions.length) * 100;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Resultado das perguntas',
-            style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Respostas corretas: $_correctAnswers\nPorcentagem: ${percentage.toStringAsFixed(2)}%',
-            style: TextStyle(fontSize: 18, color: Colors.black),
-          ),
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Resultados'),
+          content: Text('Você acertou $_correctAnswers de ${widget.questions.length} perguntas!'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-              child: Text('Fechar', style: TextStyle(color: Colors.deepOrange)),
+              child: Text('Voltar'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final question = widget.questions[_currentQuestionIndex];
+    final currentQuestion = widget.questions[_currentQuestionIndex];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('perguntas', style: TextStyle(fontSize: 24)),
+        title: Text('Quiz de ${currentQuestion['question']}'),
         backgroundColor: Colors.deepOrange,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16),
         child: Column(
           children: [
             Text(
-              question['question'],
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepOrangeAccent),
+              currentQuestion['question'],
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-            SizedBox(height: 20),
-            ...List.generate(question['options'].length, (optionIndex) {
-              return GestureDetector(
-                onTap: () => _answerQuestion(optionIndex),
-                child: Container(
-                  margin: EdgeInsets.symmetric(vertical: 8),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orangeAccent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.deepOrange,
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${question['options'][optionIndex]}',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                ),
-              );
-            }),
+            SizedBox(height: 16),
+            ...currentQuestion['options'].map<Widget>(
+                  (option) => ElevatedButton(
+                onPressed: () => _answerQuestion(option),
+                child: Text(option.toString()),
+              ),
+            ),
           ],
         ),
       ),
