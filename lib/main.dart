@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:math';
-import 'package:lottie/lottie.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:async';
+//https://docs.flutter.dev/platform-integration/platform-channels
 
 
 void main() {
@@ -24,6 +20,23 @@ void main() {
 }
 
 class MathQuizApp extends StatelessWidget {
+  static const platform = MethodChannel('samples.flutter.dev/battery');
+  // Get battery level.
+ /* String _batteryLevel = 'Unknown battery level.';
+
+  Future<void> _getBatteryLevel() async {
+    String batteryLevel;
+    try {
+      final result = await platform.invokeMethod<int>('getBatteryLevel');
+      batteryLevel = 'Battery level at $result % .';
+    } on PlatformException catch (e) {
+      batteryLevel = "Failed to get battery level: '${e.message}'.";
+    }
+
+    setState(() {
+      _batteryLevel = batteryLevel;
+    });
+  } */
   @override
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<QuizState>().isDarkMode;
@@ -80,6 +93,20 @@ class MathQuizApp extends StatelessWidget {
     );
   }
 }
+class SoundPlayer {
+  static const platform = MethodChannel('samples.flutter.dev/sound');
+
+  Future<void> playSound(String soundName) async {
+    try {
+      await platform.invokeMethod('playSound', {'sound': soundName});
+      print("Chamando método para tocar som: $soundName");
+    } on PlatformException catch (e) {
+      print("Erro ao tentar tocar som: '${e.message}'.");
+
+    }
+  }
+}
+
 
 class QuizState with ChangeNotifier {
   bool _isDarkMode = false;
@@ -322,7 +349,8 @@ class _QuizPageState extends State<QuizPage> {
     if (isCorrect) {
       _correctAnswers++;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
+
+    /* ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
        content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
 
@@ -330,7 +358,23 @@ class _QuizPageState extends State<QuizPage> {
 
         duration: Duration(seconds: 1),
       ),
+    ); */
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
+        duration: Duration(seconds: 1),
+      ),
     );
+// Instancie o SoundPlayer
+    SoundPlayer soundPlayer = SoundPlayer();
+
+// Toque o som baseado na resposta
+    if (isCorrect) {
+      soundPlayer.playSound('correct'); // Som para acerto
+    } else {
+      soundPlayer.playSound('incorrect'); // Som para erro
+    }
+
     if (_currentQuestionIndex < widget.questions.length - 1) {
       setState(() {
         _currentQuestionIndex++;
