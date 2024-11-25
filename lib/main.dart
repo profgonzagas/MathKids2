@@ -279,61 +279,93 @@ class QuizPage extends StatefulWidget {
 class _QuizPageState extends State<QuizPage> {
   int _currentQuestionIndex = 0;
   int _correctAnswers = 0;
-
   void _answerQuestion(int selectedOption) {
-    final currentQuestion = widget.questions[_currentQuestionIndex];
-    if (selectedOption == currentQuestion['answer']) {
+    final question = widget.questions[_currentQuestionIndex];
+    bool isCorrect = question['options'][selectedOption] == question['answer'];
+    if (isCorrect) {
       _correctAnswers++;
     }
-
-    if (_currentQuestionIndex + 1 < widget.questions.length) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+    if (_currentQuestionIndex < widget.questions.length - 1) {
       setState(() {
         _currentQuestionIndex++;
       });
     } else {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Resultados'),
-          content: Text('Você acertou $_correctAnswers de ${widget.questions.length} perguntas!'),
+      Future.delayed(Duration(seconds: 1), _showResults);
+    }
+  }
+  void _showResults() {
+    double percentage = (_correctAnswers / widget.questions.length) * 100;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Resultado das perguntas',
+            style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Respostas corretas: $_correctAnswers\nPorcentagem: ${percentage.toStringAsFixed(2)}%',
+            style: TextStyle(fontSize: 18, color: Colors.black),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-              child: Text('Voltar'),
+              child: Text('Fechar', style: TextStyle(color: Colors.deepOrange)),
             ),
           ],
-        ),
-      );
-    }
+        );
+      },
+    );
   }
-
   @override
   Widget build(BuildContext context) {
-    final currentQuestion = widget.questions[_currentQuestionIndex];
-
+    final question = widget.questions[_currentQuestionIndex];
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quiz de ${currentQuestion['question']}'),
+        title: Text('perguntas', style: TextStyle(fontSize: 24)),
         backgroundColor: Colors.deepOrange,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Text(
-              currentQuestion['question'],
-              style: Theme.of(context).textTheme.bodyLarge,
+              question['question'],
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepOrangeAccent),
             ),
-            SizedBox(height: 16),
-            ...currentQuestion['options'].map<Widget>(
-                  (option) => ElevatedButton(
-                onPressed: () => _answerQuestion(option),
-                child: Text(option.toString()),
-              ),
-            ),
+            SizedBox(height: 20),
+            ...List.generate(question['options'].length, (optionIndex) {
+              return GestureDetector(
+                onTap: () => _answerQuestion(optionIndex),
+                child: Container(
+                  margin: EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.deepOrange,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${question['options'][optionIndex]}',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       ),
