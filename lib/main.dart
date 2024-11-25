@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
+import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math';
+import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 void main() {
   runApp(
@@ -84,6 +95,15 @@ class QuizState with ChangeNotifier {
 }
 
 class HomePage extends StatelessWidget {
+  // Função para abrir o Instagram
+  Future<void> _openInstagram() async {
+    final url = 'https://www.instagram.com/profgonzagas/';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Não foi possível abrir o Instagram $url';
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,6 +115,12 @@ class HomePage extends StatelessWidget {
           IconButton(
             icon: Icon(context.watch<QuizState>().isDarkMode ? Icons.dark_mode : Icons.light_mode),
             onPressed: () => context.read<QuizState>().toggleDarkMode(),
+          ),
+          IconButton(
+            icon: FaIcon(FontAwesomeIcons.instagram),  // Ícone do Instagram usando FontAwesome
+            onPressed: () {
+              _openInstagram();
+            },
           ),
         ],
       ),
@@ -123,7 +149,15 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-
+// Função para abrir o Instagram
+Future<void> _openInstagram() async {
+  const url = 'https://www.instagram.com/profgonzagas';
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    throw 'Não foi possível abrir o Instagram.';
+  }
+}
 class MathOptionButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -155,6 +189,9 @@ class MathOptionButton extends StatelessWidget {
     );
   }
 }
+
+// O restante do código continua sem alterações
+
 
 class QuizSettingsPage extends StatefulWidget {
   final String operation;
@@ -287,7 +324,10 @@ class _QuizPageState extends State<QuizPage> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
+       content: Text(isCorrect ? 'Acertou!' : 'Errou!'),
+
+        //  content: Lottie.asset('lib/assets/animations/acertou.json'),
+
         duration: Duration(seconds: 1),
       ),
     );
@@ -318,6 +358,7 @@ class _QuizPageState extends State<QuizPage> {
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
+
               },
               child: Text('Fechar', style: TextStyle(color: Colors.deepOrange)),
             ),
